@@ -1,5 +1,6 @@
 import sqlite3
 import math
+import datetime
 
 
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -48,7 +49,6 @@ def get_closest_departures(start_coordinates, end_coordinates, start_time, limit
                 LIMIT 3
             """, (stop['stop_id'], start_time[11:19]))  # Use only HH:MM:SS
             for row in cursor.fetchall():
-                debug_dist_stop_to_end = haversine_distance(stop['stop_lat'], stop['stop_lon'], end_lat, end_lon)
                 departures.append({
                     "trip_id": row['trip_id'],
                     "route_id": row['route_id'],
@@ -62,10 +62,51 @@ def get_closest_departures(start_coordinates, end_coordinates, start_time, limit
                         },
                         "departure_time": row['departure_time']
                     },
-                    "distance_start_to_stop": dist,
-                    "debug_dist_stop_to_end": debug_dist_stop_to_end
+                    "distance_start_to_stop": dist
                 })
-        return departures
+
+        # Filter departures by direction and format times
+        filtered_departures = []
+        for dep in departures:
+            # Get the full stop sequence for the trip
+            cursor.execute("""
+                SELECT st.stop_id, s.stop_lat, s.stop_lon
+                FROM stop_times st
+                JOIN stops s ON st.stop_id = s.stop_id
+                WHERE st.trip_id = ?
+                ORDER BY st.stop_sequence ASC
+            """, (dep['trip_id'],))
+            trip_stops = cursor.fetchall()
+            # Find indices of departure stop and closest stop to destination
+            dep_idx = None
+            dest_idx = None
+            min_dest_dist = float('inf')
+            for i, ts in enumerate(trip_stops):
+                if ts['stop_id'] == dep['stop']['id']:
+                    dep_idx = i
+                dest_dist = haversine_distance(ts['stop_lat'], ts['stop_lon'], end_lat, end_lon)
+                if dest_dist < min_dest_dist:
+                    min_dest_dist = dest_dist
+                    dest_idx = i
+            # Only include departures where the trip moves towards the destination
+            if dep_idx is not None and dest_idx is not None and dep_idx < dest_idx:
+                # Format departure time as ISO 8601 (assume today)
+                today = datetime.date.today().isoformat()
+                dep_time_iso = f"{today}T{dep['stop']['departure_time']}Z"
+                filtered_departures.append({
+                    "trip_id": dep['trip_id'],
+                    "route_id": dep['route_id'],
+                    "trip_headsign": dep['trip_headsign'],
+                    "stop": {
+                        "name": dep['stop']['name'],
+                        "coordinates": dep['stop']['coordinates'],
+                        "arrival_time": dep_time_iso,  # No arrival_time in current query
+                        "departure_time": dep_time_iso
+                    }
+                })
+        # Sort by distance and apply global limit
+        filtered_departures = sorted(filtered_departures, key=lambda x: haversine_distance(start_lat, start_lon, x['stop']['coordinates']['latitude'], x['stop']['coordinates']['longitude']))[:limit]
+        return filtered_departures
     except sqlite3.Error as e:
         print(f"Database error: {e}")
         return []

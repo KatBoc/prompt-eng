@@ -224,6 +224,46 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // Add this function to fetch recommended departures
+    async function fetchRecommendedDepartures(city, startCoords, endCoords) {
+        // Example: You may need to convert coordinates to stop IDs using a backend endpoint
+        // For now, assume backend can handle coordinates directly (adapt as needed)
+        const url = `/public_transport/city/${city}/closest_departures?start_lat=${startCoords.lat}&start_lng=${startCoords.lng}&end_lat=${endCoords.lat}&end_lng=${endCoords.lng}`;
+        try {
+            const response = await fetch(url);
+            if (!response.ok) throw new Error('Network response was not ok');
+            const data = await response.json();
+            return data;
+        } catch (error) {
+            console.error('Error fetching departures:', error);
+            return null;
+        }
+    }
+
+    // Update event listener for search button
+    searchBtn.addEventListener('click', async () => {
+        if (!startCoords || !endCoords) {
+            statusMessageDiv.textContent = 'Please select both start and destination points.';
+            return;
+        }
+        statusMessageDiv.textContent = 'Searching for recommended stops and departures...';
+        const city = 'Wroclaw'; // Hardcoded for now
+        const departures = await fetchRecommendedDepartures(city, startCoords, endCoords);
+        if (departures && departures.length > 0) {
+            resultsContainer.innerHTML = departures.map(dep => `
+                <div class="bg-blue-50 p-3 rounded-lg mb-2">
+                    <strong>Stop:</strong> ${dep.stop_name || dep.stop_id}<br>
+                    <strong>Departure:</strong> ${dep.departure_time}<br>
+                    <strong>Destination:</strong> ${dep.destination_name || dep.destination}
+                </div>
+            `).join('');
+            statusMessageDiv.textContent = '';
+        } else {
+            resultsContainer.innerHTML = '';
+            statusMessageDiv.textContent = 'No departures found for the selected route.';
+        }
+    });
+
     function displayResults(data) {
         resultsContainer.innerHTML = '';
         
