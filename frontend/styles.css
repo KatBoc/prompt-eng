@@ -1,0 +1,84 @@
+body {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Custom styles for the map and interactive elements */
+.leaflet-control-custom {
+    background: transparent !important;
+    border: none !important;
+}
+
+/* Ensure the map container has proper dimensions */
+#map {
+    min-height: 400px;
+}
+
+/* Custom hover effects for departure cards */
+.departure-card {
+    transition: all 0.2s ease-in-out;
+}
+
+.departure-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Custom styles for form inputs */
+input[type="datetime-local"],
+input[type="number"] {
+    background-color: #f9fafb;
+}
+
+input[type="datetime-local"]:focus,
+input[type="number"]:focus {
+    background-color: white;
+}
+
+/* Custom loading animation */
+@keyframes pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.5;
+    }
+}
+
+.loading {
+    animation: pulse 2s ease-in-out infinite;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .grid-cols-2 {
+        grid-template-columns: 1fr;
+    }
+    
+    #map {
+        height: 300px;
+    }
+}
+
+/* Custom scrollbar for JSON output */
+#json-output {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e0 #f7fafc;
+}
+
+#json-output::-webkit-scrollbar {
+    width: 8px;
+}
+
+#json-output::-webkit-scrollbar-track {
+    background: #f7fafc;
+    border-radius: 4px;
+}
+
+#json-output::-webkit-scrollbar-thumb {
+    background: #cbd5e0;
+    border-radius: 4px;
+}
+
+#json-output::-webkit-scrollbar-thumb:hover {
+    background: #a0aec0;
+}
